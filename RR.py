@@ -9,6 +9,7 @@ class Process:
         self.turnaround_time = 0
         self.time_quantum = 0
         self.io_burst = 0
+        self.pre_time_quantum = 0
     
     def display(self):
         print(self.id, end=" "*20)
@@ -83,11 +84,13 @@ sortProcessList(allProcesses,count,"arrival")
 
 print("\n. = idle\n- = running\nC = completed\nNC = swapped out\nIO = waiting for input/output\n")
 while allProcessCompleted(bursts, count) == False:
+    #new processes
     while process_index < count and allProcesses[process_index].arrival_time == clock:
         allProcesses[process_index].time_quantum = time_quantum
         readyProcesses.append(allProcesses[process_index])
         process_index = process_index + 1
-        
+
+    #processes coming from waiting    
     if waitingProcesses:
         while processFinishedWaiting(returnTimeFromIO, len(returnTimeFromIO), clock) != -1:
             index = processFinishedWaiting(returnTimeFromIO, len(returnTimeFromIO), clock)
@@ -97,6 +100,7 @@ while allProcessCompleted(bursts, count) == False:
     if not readyProcesses:
         print(". ", end="")
     elif readyProcesses:
+        #processes started execution
         if readyProcesses[0].burst_time == bursts[readyProcesses[0].id]:
             for i in range(count):
                 if readyProcesses[0].id == allProcesses[i].id:
@@ -104,10 +108,9 @@ while allProcessCompleted(bursts, count) == False:
                     
         readyProcesses[0].time_quantum = readyProcesses[0].time_quantum - 1
         bursts[readyProcesses[0].id] = bursts[readyProcesses[0].id] - 1
-        #ensuring no execution symbol if current process is going for IO
-        #if readyProcesses[0].start_time != clock - io_after:
         print("- ", end="")
         
+        #processes completed execution
         if bursts[readyProcesses[0].id] == 0:
             for i in range(count):
                 if readyProcesses[0].id == allProcesses[i].id:
@@ -117,18 +120,37 @@ while allProcessCompleted(bursts, count) == False:
                     avg_waiting_time = avg_waiting_time + allProcesses[i].waiting_time
                     avg_turnaround_time = avg_turnaround_time + allProcesses[i].turnaround_time
             print("P",readyProcesses[0].id,"(C)", end="", sep="")
-            readyProcesses.pop(0)                
-        elif readyProcesses[0].time_quantum == 0 and bursts[readyProcesses[0].id] != 0:
+            readyProcesses.pop(0)
+        
+        #processes coming from runnung    
+            
+        #handle CPU bound processes with expired time quantum and going back to ready state
+        elif readyProcesses[0].time_quantum == 0 and bursts[readyProcesses[0].id] != 0 and readyProcesses[0].io_burst == 0:
             temp = readyProcesses.pop(0)
             temp.time_quantum = time_quantum
             print("P",temp.id,"(NC)", end="", sep="")
             readyProcesses.append(temp)
+        #handle IO bound processes with expired time quantum and going for IO
+        elif readyProcesses[0].time_quantum == 0 and readyProcesses[0].io_burst != 0:
+            if (readyProcesses[0].burst_time - bursts[readyProcesses[0].id]) % io_after == 0  and readyProcesses[0].burst_time != bursts[readyProcesses[0].id]:
+                temp = readyProcesses.pop(0)
+                temp.pre_time_quantum = temp.time_quantum
+                waitingProcesses.append(temp)
+                returnTimeFromIO.append(clock + temp.io_burst)
+                print("P",temp.id,"(IO)", end="", sep="")
+            else:
+                #handle IO bound processes with expired time quantum and going back to ready state
+                temp = readyProcesses.pop(0)
+                temp.time_quantum = time_quantum
+                print("P",temp.id,"(NC)", end="", sep="")
+                readyProcesses.append(temp)      
          
     clock = clock + 1
-    
-    if readyProcesses and readyProcesses[0].io_burst != 0:
-            if readyProcesses[0].time_quantum % io_after == 0:
+    #handle IO bound processes with remaining time quantum and going for IO
+    if readyProcesses and readyProcesses[0].io_burst != 0:        
+            if  readyProcesses[0].time_quantum !=  readyProcesses[0].pre_time_quantum and  (readyProcesses[0].burst_time - bursts[readyProcesses[0].id]) % io_after == 0  and readyProcesses[0].burst_time != bursts[readyProcesses[0].id]:
                 temp = readyProcesses.pop(0)
+                temp.pre_time_quantum = temp.time_quantum
                 waitingProcesses.append(temp)
                 returnTimeFromIO.append(clock + temp.io_burst)
                 print("P",temp.id,"(IO)", end="", sep="")
