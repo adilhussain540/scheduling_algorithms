@@ -100,7 +100,7 @@ while allProcessCompleted(bursts, count) == False:
             
     #processes coming from auxiliary  
     if auxiliaryProcesses:
-        #processes started execution
+        #processes continued execution
         if bursts[auxiliaryProcesses[0].id] != 0 and auxiliaryProcesses[0].time_quantum != 0:
             auxiliaryProcesses[0].time_quantum = auxiliaryProcesses[0].time_quantum - 1
             bursts[auxiliaryProcesses[0].id] = bursts[auxiliaryProcesses[0].id] - 1
@@ -116,15 +116,32 @@ while allProcessCompleted(bursts, count) == False:
                     allProcesses[i].turnaround_time = allProcesses[i].finish_time - allProcesses[i].arrival_time
                     avg_waiting_time = avg_waiting_time + allProcesses[i].waiting_time
                     avg_turnaround_time = avg_turnaround_time + allProcesses[i].turnaround_time
-            print("P",auxiliaryProcesses[0].id,"(A_C)", end="", sep="")
+            print("P",auxiliaryProcesses[0].id,"(C)", end="", sep="")
             auxiliaryProcesses.pop(0)
-            
+        
+        #remaining time quantum finished
         elif auxiliaryProcesses[0].time_quantum == 0:
-            temp = auxiliaryProcesses.pop(0)
-            temp.time_quantum = time_quantum
-            temp.pre_time_quantum = time_quantum
-            print("P",temp.id,"(A_NC)", end="", sep="")
-            readyProcesses.append(temp)
+            #going for io
+            if auxiliaryProcesses[0].time_quantum == 0 and (auxiliaryProcesses[0].burst_time - bursts[auxiliaryProcesses[0].id]) % io_after == 0:
+                temp = auxiliaryProcesses.pop(0)
+                temp.pre_time_quantum = temp.time_quantum
+                waitingProcesses.append(temp)
+                returnTimeFromIO.append(clock + temp.io_burst)
+                print("P",temp.id,"(IO)", end="", sep="")
+            else:    
+                temp = auxiliaryProcesses.pop(0)
+                temp.time_quantum = time_quantum
+                temp.pre_time_quantum = time_quantum
+                print("P",temp.id,"(NC)", end="", sep="")
+                readyProcesses.append(temp)
+         
+        #remaining time quantum and going for io
+        elif auxiliaryProcesses[0].time_quantum !=  auxiliaryProcesses[0].pre_time_quantum and  (auxiliaryProcesses[0].burst_time - bursts[auxiliaryProcesses[0].id]) % io_after == 0  and auxiliaryProcesses[0].burst_time != bursts[auxiliaryProcesses[0].id]:
+                temp = auxiliaryProcesses.pop(0)
+                temp.pre_time_quantum = temp.time_quantum
+                waitingProcesses.append(temp)
+                returnTimeFromIO.append(clock + temp.io_burst)
+                print("P",temp.id,"(IO)", end="", sep="")      
             
     elif not readyProcesses and not auxiliaryProcesses:
         print(". ", end="")
@@ -168,7 +185,6 @@ while allProcessCompleted(bursts, count) == False:
                 temp.pre_time_quantum = temp.time_quantum
                 waitingProcesses.append(temp)
                 returnTimeFromIO.append(clock + temp.io_burst)
-                #print(temp.time_quantum, end = "")
                 print("P",temp.id,"(IO)", end="", sep="")
             else:
                 #handle IO bound processes with expired time quantum and going back to ready state
@@ -177,7 +193,6 @@ while allProcessCompleted(bursts, count) == False:
                 print("P",temp.id,"(NC)", end="", sep="")
                 readyProcesses.append(temp)      
          
-    #clock = clock + 1
     #handle IO bound processes with remaining time quantum and going for IO
     if readyProcesses and readyProcesses[0].io_burst != 0:        
             if  readyProcesses[0].time_quantum !=  readyProcesses[0].pre_time_quantum and  (readyProcesses[0].burst_time - bursts[readyProcesses[0].id]) % io_after == 0  and readyProcesses[0].burst_time != bursts[readyProcesses[0].id]:
@@ -195,5 +210,6 @@ displayProcessList(allProcesses,count)
 
 print("\nAverage Waiting Time : ", avg_waiting_time)
 print("Average Turnaround Time : ", avg_turnaround_time)
+
 
 
