@@ -57,7 +57,7 @@ for index in range(int(count)):
     bursts.append(temp.burst_time)
     allProcesses.append(temp)
 
-#sorting remaining processes on bases of arrival time
+#sorting processes on bases of arrival time
 sortProcessList(allProcesses,count)
 
 print("\n. = idle\n- = running\nC = completed\n\n")
