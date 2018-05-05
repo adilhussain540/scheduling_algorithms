@@ -91,7 +91,9 @@ while allProcessCompleted(bursts) == False:
         print(". ", end="")
         clock = clock + 1
     elif readyProcesses:
-        #sorting on basis of queues priorty
+        # sorting on basis of queues priorty
+        # this sorting will make sure that processes belonging to top queues finish execution first if they are ready along
+        # with other processes from other queues
         sortProcessList(readyProcesses, len(readyProcesses), "queue")
         
         #processes started execution
@@ -124,3 +126,4 @@ displayProcessList(allProcesses,count)
 
 print("\nAverage Waiting Time : ", avg_waiting_time)
 print("Average Turnaround Time : ", avg_turnaround_time)
+
